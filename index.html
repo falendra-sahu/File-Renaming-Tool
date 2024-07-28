@@ -3,326 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Renaming Tool</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <title>Bulk File Rename and Download</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f5f5f5;
             margin: 0;
             padding: 20px;
-            overflow: auto; /* Allow scrolling if content overflows */
-        }
-        .container {
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            padding: 20px;
-            max-width: 600px;
-            width: 100%;
-            margin: 0 auto; /* Center the container */
-        }
-        .scrollable-files, .scrollable-rename {
-            max-height: 30vh;
-            overflow-y: auto;
-            margin-bottom: 20px;
-        }
-        .container h1 {
-            text-align: center;
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-            text-align: center; /* Center align content */
-        }
-        .form-group label {
-            font-weight: 600;
-            display: block;
-            margin-bottom: 5px;
-        }
-        .custom-file-button {
-            display: inline-block;
-            background-color: #007bff;
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            text-align: center;
-            transition: background-color 0.3s, transform 0.2s;
-        }
-        .custom-file-button:hover {
-            background-color: #0056b3;
-        }
-        .custom-file-button:active {
-            transform: scale(0.98);
-        }
-        .custom-file-input {
-            display: none; /* Hide the actual file input */
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        .file-list, .rename-list {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
-        .file-list li, .rename-list li {
-            background: #f5f5f5;
-            margin: 5px 0;
-            padding: 10px;
-            border-radius: 4px;
-            font-size: 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .rename-list li input {
-            width: 60%;
-            margin-left: 10px;
-        }
-        .alert-message {
-            background: #ffdddd;
-            color: #d8000c;
-            border: 1px solid #d8000c;
-            padding: 10px;
-            border-radius: 4px;
-            position: fixed;
-            bottom: 20px; /* Position it at the bottom of the page */
-            left: 50%;
-            transform: translateX(-50%);
-            max-width: 80%;
-            z-index: 1000; /* Ensure it appears above other content */
-            display: none;
-        }
-        .buttons {
+            background-color: #f4f4f9;
+            color: #333;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            align-items: center;
         }
-        .buttons button {
+        h1 {
+            margin-bottom: 20px;
+            color: #4a4a4a;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .file-input {
+            margin-bottom: 15px;
+        }
+        label {
+            font-weight: 500;
+            margin-bottom: 5px;
+            display: block;
+        }
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
             padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #5cb85c;
+            color: white;
             border: none;
             border-radius: 4px;
-            font-size: 16px;
+            padding: 10px 15px;
             cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s, box-shadow 0.2s;
-            color: #fff;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            width: 100%;
         }
-        .buttons button:hover {
-            background-color: #0056b3;
+        button:hover {
+            background-color: #4cae4c;
         }
-        .buttons button:active {
-            transform: scale(0.98);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        .name-pair {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
         }
-        .btn-rename {
-            background-color: #007bff;
+        .name-pair span {
+            width: 45%;
+            font-weight: 500;
         }
-        .btn-save-with-zip {
-            background-color: #28a745;
+        .name-pair input {
+            width: 45%;
         }
-        .btn-start-new {
-            background-color: #dc3545;
-        }
-        @media (min-width: 600px) {
-            .buttons {
-                flex-direction: row;
-            }
-            .buttons button {
-                flex: 1;
-            }
-        }
-        .hidden {
+        #loadingMessage {
             display: none;
-        }
-        footer {
+            font-size: 18px;
+            color: #5cb85c;
             margin-top: 20px;
-            font-size: 14px;
-            color: #666;
+        }
+        .alert {
+            display: none;
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 20px;
+            width: 100%;
             text-align: center;
         }
-        footer a {
-            color: #007bff;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        footer a:hover {
-            text-decoration: underline;
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            button {
+                font-size: 14px;
+            }
+            input[type="text"] {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h1>File Renaming Tool</h1>
-    <div class="alert-message" id="alert-message"></div>
-    <div class="form-group">
-        <label for="files" class="custom-file-button">Choose Files</label>
-        <input type="file" id="files" class="custom-file-input" multiple>
-        <div class="scrollable-files">
-            <ul class="file-list" id="file-list"></ul>
-        </div>
+    <h1>Bulk File Rename and Download</h1>
+    <div class="container">
+        <form id="fileForm">
+            <div class="file-input">
+                <label for="fileInput">Select Files:</label>
+                <input type="file" id="fileInput" multiple>
+            </div>
+            <div class="file-input">
+                <label>Rename Option:</label>
+                <input type="radio" id="oneName" name="renameOption" value="oneName" checked>
+                <label for="oneName">One name for all</label>
+                <input type="radio" id="individualName" name="renameOption" value="individualName">
+                <label for="individualName">Individual name</label>
+            </div>
+            <div class="file-input">
+                <label for="newName">Enter New Base Name:</label>
+                <input type="text" id="newName" required>
+                <button type="button" id="applyBaseNameButton" style="display: none;">Apply Base Name</button>
+            </div>
+            <div class="file-input">
+                <label for="newExtension">Optional New Extension:</label>
+                <input type="text" id="newExtension" placeholder="e.g. txt, jpg">
+            </div>
+            <div id="nameList" style="display: none;">
+                <h3>Rename Files</h3>
+                <div id="namePairs"></div>
+            </div>
+            <button type="submit">Rename and Download</button>
+            <button type="button" id="startNewButton">Start New</button>
+        </form>
+        <div id="loadingMessage">Please wait...</div>
+        <div id="alertMessage" class="alert"></div>
     </div>
-    <div class="form-group">
-        <label for="rename-option">Rename Option:</label>
-        <select id="rename-option">
-            <option value="one-name">One Name for All</option>
-            <option value="individual">Individual Rename</option>
-        </select>
-    </div>
-    <div class="scrollable-rename hidden" id="rename-section">
-        <ul class="rename-list" id="rename-list"></ul>
-    </div>
-    <div class="form-group" id="new-name-container">
-        <label for="new-name">New Name:</label>
-        <input type="text" id="new-name" placeholder="New Name">
-    </div>
-    <div class="form-group">
-        <label for="extension">Change Extension (optional):</label>
-        <input type="text" id="extension" placeholder="e.g., .txt, .jpg">
-    </div>
-    <div class="buttons">
-        <button class="btn-rename" onclick="renameFiles()">Rename Files</button>
-        <button class="btn-save-with-zip" onclick="saveFiles(true)">Save Files With Zip</button>
-        <button class="btn-start-new" onclick="startNew()">Start New</button>
-    </div>
-</div>
 
-<footer>
-    Powered by <a href="#">Falendra Sahu ❤️</a>
-</footer>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script>
+        let selectedFiles = [];
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-<script>
-    function showAlert(message) {
-        const alertMessage = document.getElementById('alert-message');
-        alertMessage.textContent = message;
-        alertMessage.style.display = 'block';
-        setTimeout(() => {
-            alertMessage.style.display = 'none';
-        }, 1000); // Show for 1 second
-    }
-
-    document.getElementById('rename-option').addEventListener('change', function() {
-        const renameList = document.getElementById('rename-list');
-        const renameSection = document.getElementById('rename-section');
-        const newNameContainer = document.getElementById('new-name-container');
-        if (this.value === 'individual') {
-            renameSection.classList.remove('hidden');
-            newNameContainer.classList.add('hidden');
-            updateRenameList();
-        } else {
-            renameSection.classList.add('hidden');
-            newNameContainer.classList.remove('hidden');
-        }
-    });
-
-    document.getElementById('files').addEventListener('change', function() {
-        const fileList = document.getElementById('file-list');
-        fileList.innerHTML = '';
-        for (const file of this.files) {
-            const listItem = document.createElement('li');
-            listItem.textContent = file.name;
-            fileList.appendChild(listItem);
-        }
-        if (document.getElementById('rename-option').value === 'individual') {
-            updateRenameList();
-        }
-    });
-
-    function updateRenameList() {
-        const files = document.getElementById('files').files;
-        const renameList = document.getElementById('rename-list');
-        renameList.innerHTML = '';
-        for (const file of files) {
-            const listItem = document.createElement('li');
-            listItem.innerHTML = `
-                ${file.name} <input type="text" placeholder="New name">
-            `;
-            renameList.appendChild(listItem);
-        }
-    }
-
-    function renameFiles() {
-        const files = document.getElementById('files').files;
-        const renameOption = document.getElementById('rename-option').value;
-        const newName = document.getElementById('new-name').value;
-        const extension = document.getElementById('extension').value;
-
-        // Create a new array for renamed files
-        const renamedFiles = Array.from(files).map((file, index) => {
-            const fileName = renameOption === 'one-name' ? newName : document.querySelectorAll('#rename-list input')[index].value || file.name.split('.').slice(0, -1).join('.');
-            const fileExtension = extension.startsWith('.') ? extension.slice(1) : file.name.split('.').pop();
-            const newFileName = `${fileName}.${fileExtension}`;
-
-            // Create a new Blob object with the new file name
-            return {
-                oldName: file.name,
-                newName: newFileName,
-                blob: new Blob([file], { type: file.type })
-            };
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            selectedFiles = Array.from(event.target.files);
+            updateNamePairs();
         });
 
-        // Save renamed files
-        saveFilesAsNewFiles(renamedFiles);
-        showAlert('Files renamed successfully.');
-    }
-
-    function saveFilesAsNewFiles(files) {
-        files.forEach(file => {
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(file.blob);
-            link.download = file.newName;
-            link.click();
-            URL.revokeObjectURL(link.href);
+        document.querySelectorAll('input[name="renameOption"]').forEach(option => {
+            option.addEventListener('change', function() {
+                updateNamePairs();
+            });
         });
-    }
 
-    function saveFiles(withZip) {
-        const files = document.getElementById('files').files;
-        if (files.length === 0) {
-            showAlert('No files to save.');
-            return;
+        function updateNamePairs() {
+            const namePairs = document.getElementById('namePairs');
+            namePairs.innerHTML = ''; // Clear previous pairs
+            const renameOption = document.querySelector('input[name="renameOption"]:checked').value;
+
+            // Show or hide the Apply Base Name button
+            document.getElementById('applyBaseNameButton').style.display = renameOption === 'individualName' ? 'inline' : 'none';
+
+            if (renameOption === 'individualName' && selectedFiles.length > 0) {
+                document.getElementById('nameList').style.display = 'block';
+                selectedFiles.forEach((file, index) => {
+                    const namePair = document.createElement('div');
+                    namePair.classList.add('name-pair');
+                    namePair.innerHTML = `
+                        <span>${file.name}</span>
+                        <input type="text" placeholder="New name" id="newName_${index}">
+                    `;
+                    namePairs.appendChild(namePair);
+                });
+            } else {
+                document.getElementById('nameList').style.display = 'none';
+            }
         }
 
-        if (withZip) {
+        document.getElementById('applyBaseNameButton').addEventListener('click', function() {
+            const baseNameInput = document.getElementById('newName');
+            const individualNameInputs = document.querySelectorAll('#namePairs input[type="text"]');
+
+            individualNameInputs.forEach((input) => {
+                if (!input.value.trim()) {
+                    input.value = baseNameInput.value;
+                }
+            });
+        });
+
+        document.getElementById('fileForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const newExtension = document.getElementById('newExtension').value;
+            const renameOption = document.querySelector('input[name="renameOption"]:checked').value;
+
+            if (selectedFiles.length === 0) {
+                showAlert('Please select at least one file.');
+                return;
+            }
+
+            const renamedFiles = [];
+            const fileNames = {};
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                const originalExtension = file.name.substring(file.name.lastIndexOf('.'));
+                let newFileName;
+
+                if (renameOption === 'oneName') {
+                    newFileName = `${document.getElementById('newName').value}${newExtension ? '.' + newExtension : originalExtension}`;
+                } else {
+                    const individualNewName = document.getElementById(`newName_${i}`).value.trim();
+                    newFileName = individualNewName || document.getElementById('newName').value; // Use base name if input is empty
+                    newFileName += newExtension ? '.' + newExtension : originalExtension;
+                }
+
+                // Check for duplicate file names
+                let counter = 1;
+                let uniqueFileName = newFileName;
+                while (fileNames[uniqueFileName]) {
+                    uniqueFileName = `${newFileName.split('.')[0]}_${counter++}${originalExtension}`;
+                }
+                fileNames[uniqueFileName] = true;
+
+                const blob = new Blob([file], { type: file.type });
+                renamedFiles.push({ name: uniqueFileName, blob: blob });
+            }
+
+            // Show loading message
+            document.getElementById('loadingMessage').style.display = 'block';
+
             const zip = new JSZip();
-            Array.from(files).forEach(file => {
-                zip.file(file.name, file);
+            renamedFiles.forEach(({ name, blob }) => {
+                zip.file(name, blob);
             });
 
-            zip.generateAsync({ type: 'blob' }).then(content => {
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(content);
-                link.download = 'files.zip';
-                link.click();
-                URL.revokeObjectURL(link.href);
+            zip.generateAsync({ type: 'blob' }).then(function(content) {
+                // Hide loading message
+                document.getElementById('loadingMessage').style.display = 'none';
+                saveAs(content, 'renamed_files.zip');
             });
+        });
+
+        document.getElementById('startNewButton').addEventListener('click', function() {
+            // Reset the form
+            document.getElementById('fileForm').reset();
+            // Hide loading message and name list
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('nameList').style.display = 'none';
+            selectedFiles = [];
+        });
+
+        function showAlert(message) {
+            const alertMessage = document.getElementById('alertMessage');
+            alertMessage.textContent = message;
+            alertMessage.style.display = 'block';
+            setTimeout(() => {
+                alertMessage.style.display = 'none';
+            }, 1000); // Hide after 1 second
         }
-
-        showAlert('Files saved successfully.');
-    }
-
-    function startNew() {
-        document.getElementById('files').value = '';
-        document.getElementById('file-list').innerHTML = '';
-        document.getElementById('rename-list').innerHTML = '';
-        document.getElementById('new-name').value = '';
-        document.getElementById('extension').value = '';
-        document.getElementById('rename-option').value = 'one-name';
-        document.getElementById('rename-section').classList.add('hidden');
-        document.getElementById('new-name-container').classList.remove('hidden');
-    }
-</script>
-
+    </script>
 </body>
 </html>
