@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Renaming Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            overflow: auto; /* Allow scrolling if content overflows */
+        }
+        .container {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto; /* Center the container */
+            /* Remove fixed height */
+        }
+        .scrollable-files, .scrollable-rename {
+            max-height: 30vh;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .container h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .file-list, .rename-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .file-list li, .rename-list li {
+            background: #f5f5f5;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .rename-list li input {
+            width: 60%;
+            margin-left: 10px;
+        }
+        .alert-message {
+            background: #ffdddd;
+            color: #d8000c;
+            border: 1px solid #d8000c;
+            padding: 10px;
+            border-radius: 4px;
+            position: fixed;
+            bottom: 20px; /* Position it at the bottom of the page */
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 80%;
+            z-index: 1000; /* Ensure it appears above other content */
+            display: none;
+        }
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .buttons button {
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .buttons button:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        .buttons button:active {
+            background-color: #0056b3;
+        }
+        @media (min-width: 600px) {
+            .buttons {
+                flex-direction: row;
+            }
+            .buttons button {
+                flex: 1;
+            }
+        }
+        .hidden {
+            display: none;
+        }
+        footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+        footer a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>File Renaming Tool</h1>
+    <div class="alert-message" id="alert-message"></div>
+    <div class="form-group">
+        <label for="files">Choose Files:</label>
+        <input type="file" id="files" multiple>
+        <div class="scrollable-files">
+            <ul class="file-list" id="file-list"></ul>
+        </div>
+    </div>
+    <div class="form-group">
+        <label for="rename-option">Rename Option:</label>
+        <select id="rename-option">
+            <option value="one-name">One Name for All</option>
+            <option value="individual">Individual Rename</option>
+        </select>
+    </div>
+    <div class="scrollable-rename hidden" id="rename-section">
+        <ul class="rename-list" id="rename-list"></ul>
+    </div>
+    <div class="form-group" id="new-name-container">
+        <label for="new-name">New Name:</label>
+        <input type="text" id="new-name" placeholder="New Name">
+    </div>
+    <div class="form-group">
+        <label for="extension">Change Extension (optional):</label>
+        <input type="text" id="extension" placeholder="e.g., .txt, .jpg">
+    </div>
+    <div class="buttons">
+        <button onclick="renameFiles()">Rename Files</button>
+        <button onclick="saveFiles(false)">Save Files Without Zip</button>
+        <button onclick="saveFiles(true)">Save Files With Zip</button>
+        <button onclick="startNew()">Start New</button>
+    </div>
+</div>
+
+<footer>
+    Powered by <a href="#">Falendra Sahu ❤️</a>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+<script>
+    function showAlert(message) {
+        const alertMessage = document.getElementById('alert-message');
+        alertMessage.textContent = message;
+        alertMessage.style.display = 'block';
+        setTimeout(() => {
+            alertMessage.style.display = 'none';
+        }, 1000); // Show for 1 second
+    }
+
+    document.getElementById('rename-option').addEventListener('change', function() {
+        const renameList = document.getElementById('rename-list');
+        const renameSection = document.getElementById('rename-section');
+        const newNameContainer = document.getElementById('new-name-container');
+        if (this.value === 'individual') {
+            renameSection.classList.remove('hidden');
+            newNameContainer.classList.add('hidden');
+            updateRenameList();
+        } else {
+            renameSection.classList.add('hidden');
+            newNameContainer.classList.remove('hidden');
+        }
+    });
+
+    document.getElementById('files').addEventListener('change', function() {
+        const fileList = document.getElementById('file-list');
+        fileList.innerHTML = '';
+        for (const file of this.files) {
+            const listItem = document.createElement('li');
+            listItem.textContent = file.name;
+            fileList.appendChild(listItem);
+        }
+        if (document.getElementById('rename-option').value === 'individual') {
+            updateRenameList();
+        }
+    });
+
+    function updateRenameList() {
+        const files = document.getElementById('files').files;
+        const renameList = document.getElementById('rename-list');
+        renameList.innerHTML = '';
+        for (const file of files) {
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `
+                <span>${file.name}</span>
+                <input type="text" placeholder="New name for ${file.name}">
+            `;
+            renameList.appendChild(listItem);
+        }
+    }
+
+    function renameFiles() {
+        const files = document.getElementById('files').files;
+        const renameOption = document.getElementById('rename-option').value;
+        const newName = document.getElementById('new-name').value;
+        const extension = document.getElementById('extension').value;
+        const renameInputs = document.querySelectorAll('#rename-list input');
+
+        if (files.length === 0) {
+            showAlert('Please select files to rename.');
+            return;
+        }
+
+        if (renameOption === 'one-name' && !newName) {
+            showAlert('Please enter a new name for all files.');
+            return;
+        }
+
+        const renamedFiles = Array.from(files).map((file, index) => {
+            let fileName;
+            if (renameOption === 'one-name') {
+                fileName = newName || file.name;
+            } else {
+                fileName = renameInputs[index].value || file.name;
+            }
+            const fileExtension = extension || file.name.split('.').pop();
+            return new File([file], `${fileName}.${fileExtension}`);
+        });
+
+        window.renamedFiles = renamedFiles;
+        showAlert('Files renamed successfully.');
+    }
+
+    function saveFiles(zip) {
+        if (!window.renamedFiles) {
+            showAlert('Please rename the files first.');
+            return;
+        }
+
+        if (zip) {
+            const zipFile = new JSZip();
+            const zipName = 'renamed_files.zip';
+
+            window.renamedFiles.forEach(file => {
+                zipFile.file(file.name, file);
+            });
+
+            zipFile.generateAsync({ type: 'blob' }).then(content => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = zipName;
+                link.click();
+                showAlert('Files saved as zip.');
+            });
+        } else {
+            window.renamedFiles.forEach(file => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(file);
+                link.download = file.name;
+                link.click();
+            });
+            showAlert('Files saved individually.');
+        }
+    }
+
+    function startNew() {
+        document.getElementById('files').value = '';
+        document.getElementById('file-list').innerHTML = '';
+        document.getElementById('rename-list').innerHTML = '';
+        document.getElementById('new-name').value = '';
+        document.getElementById('extension').value = '';
+        document.getElementById('rename-option').value = 'one-name';
+        document.getElementById('rename-section').classList.add('hidden');
+        document.getElementById('new-name-container').classList.remove('hidden');
+        showAlert('Start a new file renaming task.');
+    }
+</script>
+
+</body>
+</html>
