@@ -18,7 +18,7 @@
         }
         h1 {
             margin-bottom: 20px;
-            color: blue; /* Header color changed to blue */
+            color: blue;
         }
         .container {
             background: white;
@@ -116,10 +116,10 @@
             }
         }
         .file-input input[type="radio"] {
-            display: none; /* Hide the default radio button */
+            display: none;
         }
         .file-input label {
-            background-color: #e7f1ff; /* Background color */
+            background-color: #e7f1ff;
             padding: 10px;
             border-radius: 5px;
             cursor: pointer;
@@ -127,7 +127,23 @@
             margin-right: 10px;
         }
         .file-input input[type="radio"]:checked + label {
-            background-color: #cce5ff; /* Background color for selected */
+            background-color: #cce5ff;
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+            width: 100%;
+        }
+        footer a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        footer a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -177,21 +193,33 @@
         <div id="alertMessage" class="alert"></div>
     </div>
 
+    <footer>
+        Powered by <a href="#">Falendra Sahu ❤️</a>
+    </footer>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script>
         let selectedFiles = [];
 
-        document.getElementById('fileInput').addEventListener('change', function(event) {
-            selectedFiles = Array.from(event.target.files);
-            updateNamePairs();
-            toggleOptionsVisibility();
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const renameOptions = document.querySelector('.file-input:nth-child(2)');
+            const fileTypeOptions = document.querySelector('.file-input:nth-child(3)');
+            
+            renameOptions.style.display = 'none';
+            fileTypeOptions.style.display = 'none';
+
+            document.getElementById('fileInput').addEventListener('change', function(event) {
+                selectedFiles = Array.from(event.target.files);
+                updateNamePairs();
+                toggleOptionsVisibility();
+            });
         });
 
         function toggleOptionsVisibility() {
             const renameOptions = document.querySelector('.file-input:nth-child(2)');
             const fileTypeOptions = document.querySelector('.file-input:nth-child(3)');
-            
+
             if (selectedFiles.length > 0) {
                 renameOptions.style.display = 'block';
                 fileTypeOptions.style.display = 'block';
