@@ -18,7 +18,7 @@
         }
         h1 {
             margin-bottom: 20px;
-            color: #4a4a4a;
+            color: blue; /* Header color changed to blue */
         }
         .container {
             background: white;
@@ -73,19 +73,25 @@
             width: 45%;
         }
         #namePairs {
-            max-height: 200px; /* Set a max height for the scrollable area */
-            overflow-y: auto; /* Enable vertical scrolling */
+            max-height: 200px;
+            overflow-y: auto;
             margin-bottom: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
             padding: 10px;
             background-color: #f9f9f9;
         }
-        #loadingMessage {
+        #loadingMessage,
+        #completedMessage {
             display: none;
             font-size: 18px;
-            color: #5cb85c;
             margin-top: 20px;
+        }
+        #loadingMessage {
+            color: #5cb85c;
+        }
+        #completedMessage {
+            color: #28a745;
         }
         .alert {
             display: none;
@@ -109,10 +115,24 @@
                 font-size: 14px;
             }
         }
+        .file-input input[type="radio"] {
+            display: none; /* Hide the default radio button */
+        }
+        .file-input label {
+            background-color: #e7f1ff; /* Background color */
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .file-input input[type="radio"]:checked + label {
+            background-color: #cce5ff; /* Background color for selected */
+        }
     </style>
 </head>
 <body>
-    <h1>Bulk File Rename and Download</h1>
+    <h1>File Renamer</h1>
     <div class="container">
         <form id="fileForm">
             <div class="file-input">
@@ -125,6 +145,15 @@
                 <label for="oneName">One name for all</label>
                 <input type="radio" id="individualName" name="renameOption" value="individualName">
                 <label for="individualName">Individual name</label>
+            </div>
+            <div class="file-input">
+                <label>File Type:</label>
+                <input type="radio" id="anyFiles" name="fileType" value="anyFiles" checked>
+                <label for="anyFiles">Any Files</label>
+                <input type="radio" id="imagesOnly" name="fileType" value="imagesOnly">
+                <label for="imagesOnly">Images Only</label>
+                <input type="radio" id="videosOnly" name="fileType" value="videosOnly">
+                <label for="videosOnly">Videos Only</label>
             </div>
             <div class="file-input">
                 <label for="newName">Enter New Base Name:</label>
@@ -144,6 +173,7 @@
             <button type="button" id="startNewButton">Start New</button>
         </form>
         <div id="loadingMessage">Please wait...</div>
+        <div id="completedMessage">Renaming completed!</div>
         <div id="alertMessage" class="alert"></div>
     </div>
 
@@ -155,7 +185,21 @@
         document.getElementById('fileInput').addEventListener('change', function(event) {
             selectedFiles = Array.from(event.target.files);
             updateNamePairs();
+            toggleOptionsVisibility();
         });
+
+        function toggleOptionsVisibility() {
+            const renameOptions = document.querySelector('.file-input:nth-child(2)');
+            const fileTypeOptions = document.querySelector('.file-input:nth-child(3)');
+            
+            if (selectedFiles.length > 0) {
+                renameOptions.style.display = 'block';
+                fileTypeOptions.style.display = 'block';
+            } else {
+                renameOptions.style.display = 'none';
+                fileTypeOptions.style.display = 'none';
+            }
+        }
 
         document.querySelectorAll('input[name="renameOption"]').forEach(option => {
             option.addEventListener('change', function() {
@@ -163,28 +207,44 @@
             });
         });
 
+        document.querySelectorAll('input[name="fileType"]').forEach(option => {
+            option.addEventListener('change', function() {
+                updateNamePairs();
+            });
+        });
+
         function updateNamePairs() {
             const namePairs = document.getElementById('namePairs');
-            namePairs.innerHTML = ''; // Clear previous pairs
+            namePairs.innerHTML = '';
             const renameOption = document.querySelector('input[name="renameOption"]:checked').value;
+            const fileType = document.querySelector('input[name="fileType"]:checked').value;
 
-            // Show or hide the Apply Base Name button
             document.getElementById('applyBaseNameButton').style.display = renameOption === 'individualName' ? 'inline' : 'none';
 
             if (renameOption === 'individualName' && selectedFiles.length > 0) {
                 document.getElementById('nameList').style.display = 'block';
                 selectedFiles.forEach((file, index) => {
-                    const namePair = document.createElement('div');
-                    namePair.classList.add('name-pair');
-                    namePair.innerHTML = `
-                        <span>${file.name}</span>
-                        <input type="text" placeholder="New name" id="newName_${index}">
-                    `;
-                    namePairs.appendChild(namePair);
+                    if (fileType === 'anyFiles' || (fileType === 'imagesOnly' && isImage(file)) || (fileType === 'videosOnly' && isVideo(file))) {
+                        const namePair = document.createElement('div');
+                        namePair.classList.add('name-pair');
+                        namePair.innerHTML = `
+                            <span>${file.name}</span>
+                            <input type="text" placeholder="New name" id="newName_${index}">
+                        `;
+                        namePairs.appendChild(namePair);
+                    }
                 });
             } else {
                 document.getElementById('nameList').style.display = 'none';
             }
+        }
+
+        function isImage(file) {
+            return file.type.startsWith('image/');
+        }
+
+        function isVideo(file) {
+            return file.type.startsWith('video/');
         }
 
         document.getElementById('applyBaseNameButton').addEventListener('click', function() {
@@ -201,6 +261,7 @@
         document.getElementById('downloadZipButton').addEventListener('click', function() {
             const newExtension = document.getElementById('newExtension').value;
             const renameOption = document.querySelector('input[name="renameOption"]:checked').value;
+            const fileType = document.querySelector('input[name="fileType"]:checked').value;
 
             if (selectedFiles.length === 0) {
                 showAlert('Please select at least one file.');
@@ -212,33 +273,32 @@
 
             for (let i = 0; i < selectedFiles.length; i++) {
                 const file = selectedFiles[i];
-                const originalExtension = file.name.substring(file.name.lastIndexOf('.'));
-                let newFileName;
+                if (fileType === 'anyFiles' || (fileType === 'imagesOnly' && isImage(file)) || (fileType === 'videosOnly' && isVideo(file))) {
+                    const originalExtension = file.name.substring(file.name.lastIndexOf('.'));
+                    let newFileName;
 
-                if (renameOption === 'oneName') {
-                    newFileName = `${document.getElementById('newName').value}${newExtension ? '.' + newExtension : originalExtension}`;
-                } else {
-                    const individualNewName = document.getElementById(`newName_${i}`).value.trim();
-                    newFileName = individualNewName || document.getElementById('newName').value; // Use base name if input is empty
-                    newFileName += newExtension ? '.' + newExtension : originalExtension;
+                    if (renameOption === 'oneName') {
+                        newFileName = `${document.getElementById('newName').value}${newExtension ? '.' + newExtension : originalExtension}`;
+                    } else {
+                        const individualNewName = document.getElementById(`newName_${i}`).value.trim();
+                        newFileName = individualNewName || document.getElementById('newName').value;
+                        newFileName += newExtension ? '.' + newExtension : originalExtension;
+                    }
+
+                    let counter = 1;
+                    let uniqueFileName = newFileName;
+                    while (fileNames[uniqueFileName]) {
+                        uniqueFileName = `${newFileName.split('.')[0]}_${counter++}${originalExtension}`;
+                    }
+                    fileNames[uniqueFileName] = true;
+
+                    const blob = new Blob([file], { type: file.type });
+                    renamedFiles.push({ name: uniqueFileName, blob: blob });
                 }
-
-                // Check for duplicate file names
-                let counter = 1;
-                let uniqueFileName = newFileName;
-                while (fileNames[uniqueFileName]) {
-                    uniqueFileName = `${newFileName.split('.')[0]}_${counter++}${originalExtension}`;
-                }
-                fileNames[uniqueFileName] = true;
-
-                const blob = new Blob([file], { type: file.type });
-                renamedFiles.push({ name: uniqueFileName, blob: blob });
             }
 
-            // Show loading message
             document.getElementById('loadingMessage').style.display = 'block';
 
-            // Create ZIP and download
             const zip = new JSZip();
             renamedFiles.forEach(({ name, blob }) => {
                 zip.file(name, blob);
@@ -246,7 +306,11 @@
 
             zip.generateAsync({ type: 'blob' }).then(function(content) {
                 saveAs(content, 'renamed_files.zip');
-                document.getElementById('loadingMessage').style.display = 'none'; // Hide loading message after download
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('completedMessage').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('completedMessage').style.display = 'none';
+                }, 2000);
             });
         });
 
@@ -255,6 +319,7 @@
 
             const newExtension = document.getElementById('newExtension').value;
             const renameOption = document.querySelector('input[name="renameOption"]:checked').value;
+            const fileType = document.querySelector('input[name="fileType"]:checked').value;
 
             if (selectedFiles.length === 0) {
                 showAlert('Please select at least one file.');
@@ -266,33 +331,32 @@
 
             for (let i = 0; i < selectedFiles.length; i++) {
                 const file = selectedFiles[i];
-                const originalExtension = file.name.substring(file.name.lastIndexOf('.'));
-                let newFileName;
+                if (fileType === 'anyFiles' || (fileType === 'imagesOnly' && isImage(file)) || (fileType === 'videosOnly' && isVideo(file))) {
+                    const originalExtension = file.name.substring(file.name.lastIndexOf('.'));
+                    let newFileName;
 
-                if (renameOption === 'oneName') {
-                    newFileName = `${document.getElementById('newName').value}${newExtension ? '.' + newExtension : originalExtension}`;
-                } else {
-                    const individualNewName = document.getElementById(`newName_${i}`).value.trim();
-                    newFileName = individualNewName || document.getElementById('newName').value; // Use base name if input is empty
-                    newFileName += newExtension ? '.' + newExtension : originalExtension;
+                    if (renameOption === 'oneName') {
+                        newFileName = `${document.getElementById('newName').value}${newExtension ? '.' + newExtension : originalExtension}`;
+                    } else {
+                        const individualNewName = document.getElementById(`newName_${i}`).value.trim();
+                        newFileName = individualNewName || document.getElementById('newName').value;
+                        newFileName += newExtension ? '.' + newExtension : originalExtension;
+                    }
+
+                    let counter = 1;
+                    let uniqueFileName = newFileName;
+                    while (fileNames[uniqueFileName]) {
+                        uniqueFileName = `${newFileName.split('.')[0]}_${counter++}${originalExtension}`;
+                    }
+                    fileNames[uniqueFileName] = true;
+
+                    const blob = new Blob([file], { type: file.type });
+                    renamedFiles.push({ name: uniqueFileName, blob: blob });
                 }
-
-                // Check for duplicate file names
-                let counter = 1;
-                let uniqueFileName = newFileName;
-                while (fileNames[uniqueFileName]) {
-                    uniqueFileName = `${newFileName.split('.')[0]}_${counter++}${originalExtension}`;
-                }
-                fileNames[uniqueFileName] = true;
-
-                const blob = new Blob([file], { type: file.type });
-                renamedFiles.push({ name: uniqueFileName, blob: blob });
             }
 
-            // Show loading message
             document.getElementById('loadingMessage').style.display = 'block';
 
-            // Download each file one by one
             let downloadIndex = 0;
             function downloadNext() {
                 if (downloadIndex < renamedFiles.length) {
@@ -304,21 +368,25 @@
                     link.click();
                     document.body.removeChild(link);
                     downloadIndex++;
-                    setTimeout(downloadNext, 100); // 100 milliseconds delay
+                    setTimeout(downloadNext, 100);
                 } else {
-                    document.getElementById('loadingMessage').style.display = 'none'; // Hide loading message after all downloads
+                    document.getElementById('loadingMessage').style.display = 'none';
+                    document.getElementById('completedMessage').style.display = 'block';
+                    setTimeout(() => {
+                        document.getElementById('completedMessage').style.display = 'none';
+                    }, 2000);
                 }
             }
             downloadNext();
         });
 
         document.getElementById('startNewButton').addEventListener('click', function() {
-            // Reset the form
             document.getElementById('fileForm').reset();
-            // Hide loading message and name list
             document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('completedMessage').style.display = 'none';
             document.getElementById('nameList').style.display = 'none';
             selectedFiles = [];
+            toggleOptionsVisibility();
         });
 
         function showAlert(message) {
@@ -327,7 +395,7 @@
             alertMessage.style.display = 'block';
             setTimeout(() => {
                 alertMessage.style.display = 'none';
-            }, 1000); // Hide after 1 second
+            }, 1000);
         }
     </script>
 </body>
