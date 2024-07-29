@@ -55,6 +55,7 @@
             font-size: 16px;
             transition: background-color 0.3s;
             width: 100%;
+            margin-top: 10px;
         }
         button:hover {
             background-color: #4cae4c;
@@ -70,6 +71,15 @@
         }
         .name-pair input {
             width: 45%;
+        }
+        #namePairs {
+            max-height: 200px; /* Set a max height for the scrollable area */
+            overflow-y: auto; /* Enable vertical scrolling */
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: #f9f9f9;
         }
         #loadingMessage {
             display: none;
@@ -129,7 +139,8 @@
                 <h3>Rename Files</h3>
                 <div id="namePairs"></div>
             </div>
-            <button type="submit">Rename and Download</button>
+            <button type="button" id="downloadZipButton">Download All as ZIP</button>
+            <button type="submit">Download All Individually</button>
             <button type="button" id="startNewButton">Start New</button>
         </form>
         <div id="loadingMessage">Please wait...</div>
@@ -187,6 +198,58 @@
             });
         });
 
+        document.getElementById('downloadZipButton').addEventListener('click', function() {
+            const newExtension = document.getElementById('newExtension').value;
+            const renameOption = document.querySelector('input[name="renameOption"]:checked').value;
+
+            if (selectedFiles.length === 0) {
+                showAlert('Please select at least one file.');
+                return;
+            }
+
+            const renamedFiles = [];
+            const fileNames = {};
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                const originalExtension = file.name.substring(file.name.lastIndexOf('.'));
+                let newFileName;
+
+                if (renameOption === 'oneName') {
+                    newFileName = `${document.getElementById('newName').value}${newExtension ? '.' + newExtension : originalExtension}`;
+                } else {
+                    const individualNewName = document.getElementById(`newName_${i}`).value.trim();
+                    newFileName = individualNewName || document.getElementById('newName').value; // Use base name if input is empty
+                    newFileName += newExtension ? '.' + newExtension : originalExtension;
+                }
+
+                // Check for duplicate file names
+                let counter = 1;
+                let uniqueFileName = newFileName;
+                while (fileNames[uniqueFileName]) {
+                    uniqueFileName = `${newFileName.split('.')[0]}_${counter++}${originalExtension}`;
+                }
+                fileNames[uniqueFileName] = true;
+
+                const blob = new Blob([file], { type: file.type });
+                renamedFiles.push({ name: uniqueFileName, blob: blob });
+            }
+
+            // Show loading message
+            document.getElementById('loadingMessage').style.display = 'block';
+
+            // Create ZIP and download
+            const zip = new JSZip();
+            renamedFiles.forEach(({ name, blob }) => {
+                zip.file(name, blob);
+            });
+
+            zip.generateAsync({ type: 'blob' }).then(function(content) {
+                saveAs(content, 'renamed_files.zip');
+                document.getElementById('loadingMessage').style.display = 'none'; // Hide loading message after download
+            });
+        });
+
         document.getElementById('fileForm').addEventListener('submit', function(event) {
             event.preventDefault();
 
@@ -229,16 +292,24 @@
             // Show loading message
             document.getElementById('loadingMessage').style.display = 'block';
 
-            const zip = new JSZip();
-            renamedFiles.forEach(({ name, blob }) => {
-                zip.file(name, blob);
-            });
-
-            zip.generateAsync({ type: 'blob' }).then(function(content) {
-                // Hide loading message
-                document.getElementById('loadingMessage').style.display = 'none';
-                saveAs(content, 'renamed_files.zip');
-            });
+            // Download each file one by one
+            let downloadIndex = 0;
+            function downloadNext() {
+                if (downloadIndex < renamedFiles.length) {
+                    const { name, blob } = renamedFiles[downloadIndex];
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = name;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    downloadIndex++;
+                    setTimeout(downloadNext, 100); // 100 milliseconds delay
+                } else {
+                    document.getElementById('loadingMessage').style.display = 'none'; // Hide loading message after all downloads
+                }
+            }
+            downloadNext();
         });
 
         document.getElementById('startNewButton').addEventListener('click', function() {
